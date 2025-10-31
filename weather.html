@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今日の天気</title>
+    <style>
+        /* 見た目を整えるためのCSS（雰囲気） */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: grid;
+            place-items: center;
+            min-height: 100vh;
+            background-color: #f0f4f8;
+            color: #333;
+        }
+        #weather-card {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            width: 300px;
+            text-align: center;
+        }
+        #status {
+            font-size: 1.1em;
+            color: #555;
+        }
+        #temperature {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 10px 0;
+            color: #1a73e8;
+        }
+        #weather {
+            font-size: 1.5em;
+            font-weight: 500;
+        }
+        #location {
+            font-size: 0.9em;
+            color: #777;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="weather-card">
+        <div id="status">天気を取得中...</div>
+        <div id="temperature"></div>
+        <div id="weather"></div>
+        <div id="location"></div>
+    </div>
+
+    <script>
+        // ページが読み込まれたら実行
+        window.addEventListener('load', () => {
+            // 1. ブラウザの位置情報（緯度・経度）を取得する
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(successCallback, errorCallback);
+            } else {
+                updateStatus("位置情報が取得できませんでした。");
+            }
+        });
+
+        // 位置情報の取得に成功した場合
+        async function successCallback(position) {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+            
+            updateStatus("天気情報を取得中...");
+
+            // 2. Open-Meteo APIに緯度・経度を渡して天気を問い合わせる
+            const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code&timezone=Asia%2FTokyo`;
+
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+
+                // 3. 取得したデータを表示する
+                displayWeather(data);
+
+            } catch (error) {
+                console.error("APIエラー:", error);
+                updateStatus("天気情報の取得に失敗しました。");
+            }
+        }
+
+        // 位置情報の取得に失敗した場合
+        function errorCallback(error) {
+            console.error("位置情報エラー:", error);
+            updateStatus("位置情報の取得を許可してください。");
+        }
+
+        // 天気情報をHTMLに反映する
+        function displayWeather(data) {
+            const temp = data.current.temperature_2m;
+            const weatherCode = data.current.weather_code;
+            const weatherText = translateWeatherCode(weatherCode);
+            
+            const timezone = data.timezone.split('/')[1] || data.timezone; // "Asia/Tokyo" -> "Tokyo"
+
+            document.getElementById("status").style.display = 'none'; // "取得中..."を隠す
+            document.getElementById("temperature").textContent = `${temp} ℃`;
+            document.getElementById("weather").textContent = weatherText;
+            document.getElementById("location").textContent = `現在の場所: ${timezone} 付近`;
+        }
+        
+        // ステータスメッセージを更新する
+        function updateStatus(message) {
+            document.getElementById("status").textContent = message;
+        }
+
+        // APIから返される天気コードを日本語に変換する
+        function translateWeatherCode(code) {
+            // (簡易版です)
+            if (code === 0) return "快晴 ☀️";
+            if (code === 1) return "晴れ 🌤️";
+            if (code === 2) return "一部曇り 🌥️";
+            if (code === 3) return "曇り ☁️";
+            if (code >= 45 && code <= 48) return "霧 🌫️";
+            if (code >= 51 && code <= 55) return "霧雨 🌧️";
+            if (code >= 61 && code <= 65) return "雨 🌧️";
+            if (code >= 66 && code <= 67) return "みぞれ 🌨️";
+            if (code >= 71 && code <= 75) return "雪 ❄️";
+            if (code === 77) return "雪（粒） ❄️";
+            if (code >= 80 && code <= 82) return "にわか雨 🌧️";
+            if (code >= 85 && code <= 86) return "にわか雪 ❄️";
+            if (code >= 95 && code <= 99) return "雷雨 ⛈️";
+            return "不明";
+        }
+
+    </script>
+</body>
+</html>
