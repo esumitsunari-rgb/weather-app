@@ -1,0 +1,10 @@
+# 全部除外
+*
+
+# ただし、これら3ファイルだけはOK
+!weather2.html
+!weather2.css
+!weather2.js
+
+# （必要なら、フォルダを残す場合は以下も追加）
+!.gitignore
